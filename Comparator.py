@@ -72,7 +72,7 @@ class Comparator():
             chainCode.append(self.getChainCode(a[0], a[1], b[0], b[1]))
         return chainCode
     
-    def applyBresenham(x1, y1, x2, y2):
+    def applyBresenham(self, x1, y1, x2, y2):
         linePoints = []
         linePoints.append([x1, y1])
         xdif = x2 - x1
