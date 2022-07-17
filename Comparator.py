@@ -2,26 +2,28 @@ import numpy as np
 import math
 from collections import defaultdict
 
-class Comparator():
+jointCode = {0: 'Head',
+        1: 'Neck',
+        2: 'Right_Shoulder',
+        3: 'Right_Elbow',
+        4: 'Right_Wrist',
+        5:'Left_Shoulder',
+        6:'Left_Elbow',
+        7:'Left_Wrist',
+        8:'Right_Hip',
+        9:'Right_Knee',
+        10:'Right_Ankle',
+        11:'Left_Hip',
+        12:'Left_Knee',
+        13:'Left_Ankle',
+        14:'Chest',
+        15:'Background'}
+
+class Encoder():
     
-    def __init__(self):
+    def __init__(self, points):
         self.jointFrameMap = defaultdict(list)
-        self.jointCode = {0: 'Head',
-             1: 'Neck',
-             2: 'Right_Shoulder',
-             3: 'Right_Elbow',
-             4: 'Right_Wrist',
-             5:'Left_Shoulder',
-             6:'Left_Elbow',
-             7:'Left_Wrist',
-             8:'Right_Hip',
-             9:'Right_Knee',
-             10:'Right_Ankle',
-             11:'Left_Hip',
-             12:'Left_Knee',
-             13:'Left_Ankle',
-             14:'Chest',
-             15:'Background'}
+
         self.codeMap = {
             (1, 0): 0,
             (1, 1): 1,
@@ -32,12 +34,15 @@ class Comparator():
             (0, -1): 6,
             (1, -1): 7
         }
+        self.congregate(points)
+        self.encodedMap = defaultdict("")
+        self.encode()
         
         
     def congregate(self, points): #list[list[tuple]] list of frames of points
         for i in range(len(points[0])):
             for j in range(len(points)):
-                self.jointFrameMap[self.jointCode[i]].append(points[j][i])
+                self.jointFrameMap[jointCode[i]].append(points[j][i])
                 
     # This function generates the chaincode
     # for transition between two neighbour points
@@ -108,9 +113,64 @@ class Comparator():
                 d += 2 * dx
                 linePoints.append([x1, y1])
         return linePoints
-    
-def main():
-    comparator = Comparator()
-    
-if __name__ == 'main':
-    main()
+
+    def encode(self):
+        for joint in self.jointFrameMap:
+            jointPoints = self.jointFrameMap[joint]
+            
+            totalChain = ""
+            for i in range(1, len(jointPoints)):
+                p1 = jointPoints[i - 1]
+                p2 = jointPoints[i]
+                chainCode = ""
+                linePoints = self.applyBresenham(p1[0], p1[1], p2[0], p2[1])
+                chainCode = self.generateChainCode(linePoints)
+                totalChain += ("".join(str(x) for x in chainCode))
+            self.encodedMap[joint] = totalChain
+
+class Comparator():
+    def __init__(self, exp_points, act_points):
+        self._expect = Encoder(exp_points)
+        self._actual = Encoder(act_points)
+
+    def score(self):
+        total = 0
+
+        for joint in jointCode.values():
+            exp = self._expect.encodedMap[joint]
+            act = self._actual.encodedMap[joint]
+            exp_l = len(exp)
+            act_l = len(act)
+            if act_l > exp_l:
+                act = self.adjustSpeed(act, act_l/exp_l)
+            elif act_l < exp_l:
+                exp = self.adjustSpeed(exp, exp_l/act_l)
+            total += self.similarity()
+        return total/15
+            
+
+    def similarity():
+        res = 0
+        # do something
+        return res
+
+
+    def adjustSpeed(frames, time): #may not be needed
+        newData = []
+        i = 0
+        l = len(frames)
+        
+        a = int(time)
+        b = math.ceil(time)
+        print(a, b)
+        while i < l:
+            newData.append(frames[i])
+            if (i + a <= l) and (i + b) <= l:
+                spliceFrame = ((frames[int(i + a)], frames[int(i + b)]))
+                newData.append(
+                    tuple(map(lambda y: sum(y) / float(len(y)), zip(*spliceFrame))))
+                
+            i += int(time * 2)
+            
+        return newData
+
