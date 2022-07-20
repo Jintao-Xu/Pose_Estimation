@@ -30,7 +30,7 @@ def create_feedback():
     threshold = 0.1
 
 
-    input_source = "input.mp4"
+    input_source = "fdqzx-jqk7w.mp4"
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
     
@@ -106,6 +106,8 @@ def create_feedback():
 
     vid_writer.release()
 
+    
+    print(all_frame_joints)
     comp = Comparator(squat_standard, all_frame_joints)
     score = comp.score()
     

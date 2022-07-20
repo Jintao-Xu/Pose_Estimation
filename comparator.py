@@ -35,7 +35,7 @@ class Encoder():
             (1, -1): 7
         }
         self.congregate(points)
-        self.encodedMap = defaultdict("")
+        self.encodedMap = defaultdict(str)
         self.encode()
         
         
@@ -149,13 +149,13 @@ class Comparator():
         return total/15
             
 
-    def similarity():
+    def similarity(self):
         res = 0
         # do something
         return res
 
 
-    def adjustSpeed(frames, time): #may not be needed
+    def adjustSpeed(self, frames, time): #may not be needed
         newData = []
         i = 0
         l = len(frames)
