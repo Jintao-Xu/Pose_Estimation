@@ -31,8 +31,6 @@ def create_feedback():
     cap = cv2.VideoCapture(input_source)
     hasFrame, frame = cap.read()
     
-    
-
     # vid_writer = cv2.VideoWriter('output.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
     vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
 
@@ -45,20 +43,17 @@ def create_feedback():
     
     start_time = time.time()
 
-    while time.time() - start_time < 60:
+    while True:
         print(time.time() - start_time)
-        # t = time.time()
         hasFrame, frame = cap.read()
         hasFrame, frame = cap.read()
         hasFrame, frame = cap.read()
         frameCopy = np.copy(frame)
         if not hasFrame:
-            cv2.waitKey()
             break
-
+        
         frameWidth = frame.shape[1]
         frameHeight = frame.shape[0]
-
         inpBlob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (inWidth, inHeight),
                                 (0, 0, 0), swapRB=False, crop=False)
         net.setInput(inpBlob)
@@ -88,7 +83,6 @@ def create_feedback():
                 points.append((int(x), int(y)))
             else :
                 points.append(None)
-
         # Draw Skeleton
         for pair in POSE_PAIRS:
             partA = pair[0]
