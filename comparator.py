@@ -171,6 +171,7 @@ class Comparator():
             diff = 0
             exp = self._expect.encodedMap[joint]
             act = self._actual.encodedMap[joint]
+            totalDiff += abs(len(exp) - len(act)) * 0.1
             # print(exp, act)
             for i in range(min(len(exp), len(act))):
                 dissim = self.similarity(int(act[i]), int(exp[i]))
@@ -180,7 +181,7 @@ class Comparator():
         # print(totalDiff)
         
         #TODO: Do we want to return it as a single score, array of scores, or both?
-        # print(maxScore - totalDiff / 15) #Better normalization needed. 
+        # print(maxScore - totalDiff / 15) #Better normalization needed.
         return maxScore - totalDiff / 15
             
 
@@ -190,8 +191,8 @@ class Comparator():
         return scores[actual - expected]
 
 
-# actual = [[(347, 125)], [(329, 139)], [(358, 126)], [(376, 140)]]
-# expected = [[(345, 125)], [(339, 139)], [(357, 126)]]
+actual = [[(347, 125)], [(329, 139)], [(358, 126)], [(376, 140)]]
+expected = [[(345, 125)], [(339, 139)], [(357, 126)]]
 
-# comp = Comparator(expected, actual)
-# print(comp.score())
+comp = Comparator(expected, actual)
+print(comp.score())
