@@ -21,7 +21,7 @@ jointCode = {0: 'Head',
 
 class Encoder():
     
-    def __init__(self, points):
+    def __init__(self, points, speedUp = 0):
         self.jointFrameMap = defaultdict(list)
 
         self.codeMap = {
@@ -34,15 +34,19 @@ class Encoder():
             (0, -1): 6,
             (1, -1): 7
         }
-        self.congregate(points)
+        self.congregate(points, speedUp)
         self.encodedMap = defaultdict(str)
         self.encode()
         
         
-    def congregate(self, points): #list[list[tuple]] list of frames of points
-        for i in range(len(points[0])):
-            for j in range(len(points)):
+    def congregate(self, points, time): #list[list[tuple]] list of frames of points
+        for i in range(len(points[0])): #for each joint
+            for j in range(len(points)): #get point for each frame
                 self.jointFrameMap[jointCode[i]].append(points[j][i])
+                
+        if time > 0: # adjust speed to match 
+            for joint in self.jointFrameMap:
+                self.jointFrameMap[joint] = self.adjustSpeed(self.jointFrameMap[joint], time)
                 
     # This function generates the chaincode
     # for transition between two neighbour points
@@ -127,49 +131,67 @@ class Encoder():
                 chainCode = self.generateChainCode(linePoints)
                 totalChain += ("".join(str(x) for x in chainCode))
             self.encodedMap[joint] = totalChain
-
-class Comparator():
-    def __init__(self, exp_points, act_points):
-        self._expect = Encoder(exp_points)
-        self._actual = Encoder(act_points)
-
-    def score(self):
-        total = 0
-
-        for joint in jointCode.values():
-            exp = self._expect.encodedMap[joint]
-            act = self._actual.encodedMap[joint]
-            exp_l = len(exp)
-            act_l = len(act)
-            if act_l > exp_l:
-                act = self.adjustSpeed(act, act_l/exp_l)
-            elif act_l < exp_l:
-                exp = self.adjustSpeed(exp, exp_l/act_l)
-            total += self.similarity()
-        return total/15
             
-
-    def similarity(self):
-        res = 0
-        # do something
-        return res
-
-
-    def adjustSpeed(self, frames, time): #may not be needed
+    def adjustSpeed(self, frames, time):
         newData = []
         i = 0
         l = len(frames)
-        
+
         a = int(time)
         b = math.ceil(time)
-        print(a, b)
         while i < l:
             newData.append(frames[i])
-            if (i + a <= l) and (i + b) <= l:
+            if (i + a < l) and (i + b) < l:
                 spliceFrame = ((frames[int(i + a)], frames[int(i + b)]))
                 newData.append(
-                    tuple(map(lambda y: sum(y) / float(len(y)), zip(*spliceFrame))))
-                
+                    tuple(map(lambda y: int(sum(y) / float(len(y))), zip(*spliceFrame))))
+
             i += int(time * 2)
-            
+
         return newData
+
+class Comparator():
+    def __init__(self, exp_points, act_points):
+        exp_l = len(exp_points)
+        act_l = len(act_points)
+        if exp_l > act_l:
+            speedUp = exp_l / act_l
+            self._expect = Encoder(exp_points, speedUp)
+            self._actual = Encoder(act_points)
+        elif exp_l < act_l:
+            speedUp = act_l/exp_l
+            self._expect = Encoder(exp_points)
+            self._actual = Encoder(act_points, speedUp)
+        
+
+    def score(self):
+        totalDiff = 0
+        maxScore = 100
+        for joint in jointCode.values():
+            diff = 0
+            exp = self._expect.encodedMap[joint]
+            act = self._actual.encodedMap[joint]
+            # print(exp, act)
+            for i in range(min(len(exp), len(act))):
+                dissim = self.similarity(int(act[i]), int(exp[i]))
+                diff += dissim
+                # print(dissim, diff)
+            totalDiff += diff
+        # print(totalDiff)
+        
+        #TODO: Do we want to return it as a single score, array of scores, or both?
+        # print(maxScore - totalDiff / 15) #Better normalization needed. 
+        return maxScore - totalDiff / 15
+            
+
+    def similarity(self, actual, expected):
+        scores = [0, 0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25]
+        # print(actual, expected)
+        return scores[actual - expected]
+
+
+# actual = [[(347, 125)], [(329, 139)], [(358, 126)], [(376, 140)]]
+# expected = [[(345, 125)], [(339, 139)], [(357, 126)]]
+
+# comp = Comparator(expected, actual)
+# print(comp.score())
