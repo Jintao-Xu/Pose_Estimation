@@ -7,7 +7,7 @@ import flask_monitoringdashboard as dashboard
 import cv2
 import numpy as np
 import time
-from comparator import Comparator
+from comparator import Comparator, standard_dic
 from movenet_helper import *
 
 app = Flask(__name__)
@@ -16,8 +16,11 @@ dashboard.bind(app)
 
 @app.route("/feedback", methods=["POST"])
 def create_feedback():
-
+    global global_index
     encoded_string = request.json["video"]
+    mode = request.json["mode"]
+    standard = standard_dic[mode]
+    print("Recieve request, staring processing: ", mode)
 
     with open("input.mp4", "wb") as fh:
         fh.write(base64.b64decode(encoded_string))
@@ -59,18 +62,28 @@ def create_feedback():
         hasFrame, frame = cap.read()
         hasFrame, frame = cap.read()
         hasFrame, frame = cap.read()
-
+    print("Modelling time: ", time.time() - start_time)
     # Prepare gif visualization.
     output = np.stack(output_images, axis=0)
-    to_mp4(output, fps=5, name="output")
+    output_path = "user_result/output" + str(global_index)
+    global_index += 1
+    to_mp4(output, fps=5, name=output_path)
     #TODO: suppost to compare with standard
-    comp = Comparator(kpoints, kpoints)
-    score = comp.score()
-    print("score: ", score)
+    kpoints = np.array(kpoints)
+    kpoints = kpoints.reshape(kpoints.shape[0], 17, 3)
+    comp = Comparator(standard, kpoints)
+    totalScore, jointsScore = comp.score()
+    print("Comparation time: ", time.time() - start_time)
+    print(jointsScore)
+    worstThree = sorted(jointsScore.items(), key=lambda pair: pair[1])[0:3]
+    scores = {}
+    for pair in worstThree:
+        scores[pair[0]] = pair[1]
+    print("score: ", totalScore)
 
     if os.path.exists("output2.mp4"):
         os.remove("output2.mp4")
-    os.system("ffmpeg -i output.mp4 -vcodec libx264 output2.mp4")
+    os.system("ffmpeg -i ./"+ output_path+".mp4 -vcodec libx264 output2.mp4")
 
     with open('output2.mp4', 'rb') as f:
         output = f.read()
@@ -80,7 +93,8 @@ def create_feedback():
     print("Total execution time: ", time.time() - start_time)
     return jsonify({
         "video": encoded_string,
-        "score": int(score)
+        "total": int(totalScore),
+        "scores": scores
     })
 
 
@@ -90,5 +104,6 @@ def test():
         "score": 100
     })
 
+global_index = 0
 if __name__ == "__main__":
     app.run(debug=True)

@@ -48,9 +48,9 @@ class Encoder():
     def congregate(self, points, time):  # list[list[tuple]] list of frames of points
         for i,joint in enumerate(KEYPOINT_DICT):  # for each joint
             for j in range(len(points)):  # get point for each frame
-                if points[j][0,0,i,0:2].any() == None:
+                if points[j][i,0:2].any() == None:
                     continue
-                self.jointFrameMap[joint].append(points[j][0,0,i,0:2])
+                self.jointFrameMap[joint].append(points[j][i,0:2])
 
         if time > 0:  # adjust speed to match
             for joint in self.jointFrameMap:
@@ -71,8 +71,8 @@ class Encoder():
     '''
 
     def getChainCode(self, x1, y1, x2, y2):
-        dx = x2 - x1
-        dy = y2 - y1
+        dx = round(x2 - x1, 3)
+        dy = round(y2 - y1, 3)
         return self.codeMap[(int(dx/DELTA), int(dy/DELTA))]
 
     '''This function generates the list of
@@ -158,41 +158,57 @@ class Encoder():
 
 class Comparator():
     def __init__(self, exp_points, act_points):
-        exp_l = len(exp_points)
-        act_l = len(act_points)
-        if exp_l > act_l:
-            speedUp = exp_l / act_l
-            self._expect = Encoder(exp_points, speedUp)
-            self._actual = Encoder(act_points)
-        elif exp_l < act_l:
-            speedUp = act_l / exp_l
-            self._expect = Encoder(exp_points)
-            self._actual = Encoder(act_points, speedUp)
-        else:
-            self._expect = Encoder(exp_points)
-            self._actual = Encoder(act_points)
+        # exp_l = len(exp_points)
+        # act_l = len(act_points)
+        # if exp_l > act_l:
+        #     speedUp = exp_l / act_l
+        #     self._expect = Encoder(exp_points, speedUp)
+        #     self._actual = Encoder(act_points)
+        # elif exp_l < act_l:
+        #     speedUp = act_l / exp_l
+        #     self._expect = Encoder(exp_points)
+        #     self._actual = Encoder(act_points, speedUp)
+        # else:
+        #     self._expect = Encoder(exp_points)
+        #     self._actual = Encoder(act_points)
+        self._expect = Encoder(exp_points)
+        self._actual = Encoder(act_points)
 
     def score(self):
-        totalDiff = 0
+        # totalDiff = 0
         maxScore = 100
+        jointsScore = {}
         for joint in KEYPOINT_DICT:
-            diff = 0
             exp = self._expect.encodedMap[joint]
             act = self._actual.encodedMap[joint]
-            totalDiff += abs(len(exp) - len(act)) * 0.1
+            mult = maxScore / math.ceil((len(exp) + len(act))/2)
+            print(len(exp), len(act))
+            diff = abs(len(exp) - len(act)) * 0.01
+            # totalDiff += abs(len(exp) - len(act)) * 0.1
             # print(exp, act)
             for i in range(min(len(exp), len(act))):
                 dissim = self.similarity(int(act[i]), int(exp[i]))
-                diff += dissim
+                diff += dissim * mult
                 # print(dissim, diff)
-            totalDiff += diff
-        # print(totalDiff)
+            jointsScore[joint] = int(maxScore - diff)
+            # totalDiff += diff
 
         # TODO: Do we want to return it as a single score, array of scores, or both?
         # print(maxScore - totalDiff / 15) #Better normalization needed.
-        return maxScore - totalDiff / 15
+        return sum(jointsScore.values()) / jointCount, jointsScore
 
     def similarity(self, actual, expected):
         scores = [0, 0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25]
         # print(actual, expected)
         return scores[actual - expected]
+
+standard_dic = {}
+pose_list = ["Push-Up", "Sit-Up", "Squat", "Pull-Up", "Plank", "Jumping-Jack"]
+for pose_name in pose_list:
+    file = "./standard_pose/" + pose_name + ".txt"
+    loaded_kpoints = np.loadtxt(file)
+    standard_dic[pose_name] = loaded_kpoints.reshape(
+            loaded_kpoints.shape[0], loaded_kpoints.shape[1] // 3, 3)
+    
+print(standard_dic.keys())
+

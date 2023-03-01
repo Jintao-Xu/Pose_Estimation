@@ -41,6 +41,7 @@ import cv2
 
 # Import matplotlib libraries
 from matplotlib import pyplot as plt
+plt.switch_backend('agg')
 from matplotlib.collections import LineCollection
 import matplotlib.patches as patches
 
