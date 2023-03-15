@@ -22,6 +22,7 @@ KEYPOINT_DICT = {
     'left_ankle': 15,
     'right_ankle': 16
 }
+
 jointCount = len(KEYPOINT_DICT)
 DELTA = 0.001
 THRESHOLD = DELTA / 2
@@ -55,6 +56,38 @@ class Encoder():
         if time > 0:  # adjust speed to match
             for joint in self.jointFrameMap:
                 self.jointFrameMap[joint] = self.adjustSpeed(self.jointFrameMap[joint], time)
+    
+    def adjust(encoder1, encoder2):
+        for i,joint in enumerate(KEYPOINT_DICT):
+            encoder1.encodedMap[joint]
+            encoder2.encodedMap[joint]
+            l1 = len(encoder1.encodedMap[joint])
+            l2 = len(encoder2.encodedMap[joint])
+            if l1 > l2:
+                speedUp = l1 / l2
+                encoder2.extend(joint, speedUp)
+            elif l1 < l2:
+                speedUp = l2 / l1
+                encoder1.extend(joint, speedUp)
+    
+    def extend(self, joint, ratio):
+        old_list = self.encodedMap[joint]
+        old_list = [*old_list]
+        ratio_int = int(ratio)
+        
+        
+        new_list = [old_list for _ in range(ratio_int)]
+        # new_list = "".join(np.array(new_list).transpose().reshape(-1).tolist())
+        new_list = np.array(new_list).transpose().reshape(-1).tolist()
+        if ratio%1 != 0:
+            ratio_fraction = int(1/(ratio%1))
+            segment_len = int(len(new_list)/(ratio_fraction+1))
+            for i in range(segment_len):
+                new_list.insert((segment_len-i-1)*ratio_fraction, new_list[(segment_len-i-1)*ratio_fraction])
+        self.encodedMap[joint] = "".join(new_list)
+
+    # def mid_chaincode(ori, des, gap):
+
 
     # This function generates the chaincode
     # for transition between two neighbour points
@@ -173,16 +206,20 @@ class Comparator():
         #     self._actual = Encoder(act_points)
         self._expect = Encoder(exp_points)
         self._actual = Encoder(act_points)
+        Encoder.adjust(self._expect, self._actual)
 
     def score(self):
         # totalDiff = 0
         maxScore = 100
         jointsScore = {}
+        jointsWeight = {}
         for joint in KEYPOINT_DICT:
             exp = self._expect.encodedMap[joint]
             act = self._actual.encodedMap[joint]
-            mult = maxScore / math.ceil((len(exp) + len(act))/2)
-            print(len(exp), len(act))
+            common_len = math.ceil((len(exp) + len(act))/2)
+            jointsWeight[joint] = common_len
+            mult = maxScore / common_len
+            print(joint, len(exp), len(act), len(exp)/len(act))
             diff = abs(len(exp) - len(act)) * 0.01
             # totalDiff += abs(len(exp) - len(act)) * 0.1
             # print(exp, act)
@@ -195,7 +232,13 @@ class Comparator():
 
         # TODO: Do we want to return it as a single score, array of scores, or both?
         # print(maxScore - totalDiff / 15) #Better normalization needed.
-        return sum(jointsScore.values()) / jointCount, jointsScore
+        res = 0
+        print(jointsScore)
+        for joint in KEYPOINT_DICT:
+            res += jointsScore[joint] * jointsWeight[joint] / sum(jointsWeight.values())
+            jointsScore[joint] = round(-(100-jointsScore[joint])*jointsWeight[joint] / sum(jointsWeight.values()),3)
+        return res, jointsScore
+        # return sum(jointsScore.values()) / jointCount, jointsScore
 
     def similarity(self, actual, expected):
         scores = [0, 0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25]

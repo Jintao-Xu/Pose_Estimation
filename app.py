@@ -74,12 +74,12 @@ def create_feedback():
     comp = Comparator(standard, kpoints)
     totalScore, jointsScore = comp.score()
     print("Comparation time: ", time.time() - start_time)
-    print(jointsScore)
-    worstThree = sorted(jointsScore.items(), key=lambda pair: pair[1])[0:3]
-    scores = {}
-    for pair in worstThree:
-        scores[pair[0]] = pair[1]
+    worstThree = dict(sorted(jointsScore.items(), key=lambda pair: pair[1], reverse=True)[-3:])
+    # scores = {}
+    # for pair in worstThree:
+    #     scores[pair[0]] = pair[1]
     print("score: ", totalScore)
+    print("worst pair: ", worstThree)
 
     if os.path.exists("output2.mp4"):
         os.remove("output2.mp4")
@@ -94,7 +94,7 @@ def create_feedback():
     return jsonify({
         "video": encoded_string,
         "total": int(totalScore),
-        "scores": scores
+        "scores": worstThree
     })
 
 
