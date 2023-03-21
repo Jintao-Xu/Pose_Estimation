@@ -62,6 +62,7 @@ def create_feedback():
         hasFrame, frame = cap.read()
         hasFrame, frame = cap.read()
         hasFrame, frame = cap.read()
+    cap.release()
     print("Modelling time: ", time.time() - start_time)
     # Prepare gif visualization.
     output = np.stack(output_images, axis=0)
