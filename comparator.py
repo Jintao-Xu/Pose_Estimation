@@ -224,8 +224,8 @@ class Comparator():
             # totalDiff += abs(len(exp) - len(act)) * 0.1
             # print(exp, act)
             for i in range(min(len(exp), len(act))):
-                # dissim = self.similarity((act[i]), (exp[i]))
-                dissim = abs(act[i] - exp[i])
+                dissim = self.similarity(int(act[i]), int(exp[i]))
+                # dissim = abs(act[i] - exp[i])
                 diff += dissim * mult
                 # print(dissim, diff)
             jointsScore[joint] = int(maxScore - diff)
